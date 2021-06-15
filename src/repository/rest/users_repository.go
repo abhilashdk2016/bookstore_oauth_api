@@ -2,8 +2,9 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/abhilashdk2016/bookstore_oauth_api/src/domain/users"
-	"github.com/abhilashdk2016/bookstore_oauth_api/src/utils/errors"
+	"github.com/abhilashdk2016/bookstore_utils_go/rest_errors"
 	"github.com/mercadolibre/golang-restclient/rest"
 	"time"
 )
@@ -16,14 +17,14 @@ var (
 )
 
 type RestUsersRepository interface {
-	LoginUser(string, string) (*users.User, *errors.RestErr)
+	LoginUser(string, string) (*users.User, rest_errors.RestErr)
 }
 
 type restUsersRepository struct {
 
 }
 
-func (r *restUsersRepository) LoginUser(email string, password string) (*users.User, *errors.RestErr) {
+func (r *restUsersRepository) LoginUser(email string, password string) (*users.User, rest_errors.RestErr) {
 	request:= users.UserLoginRequest{
 		Email: email,
 		Password: password,
@@ -31,19 +32,19 @@ func (r *restUsersRepository) LoginUser(email string, password string) (*users.U
 	response := UsersRestClient.Post("/users/login", request)
 
 	if response == nil || response.Response == nil {
-		return nil, errors.NewInternalServerError("Invalid rest response while trying to login user")
+		return nil, rest_errors.NewInternalServerError("Invalid rest response while trying to login user", errors.New("rest error"))
 	}
 	if response.StatusCode > 299 {
-		var restErr errors.RestErr
+		var restErr rest_errors.RestErr
 		err := json.Unmarshal(response.Bytes(), &restErr)
 		if err != nil {
-			return nil, errors.NewInternalServerError("Invalid Error interface when trying to login user")
+			return nil, rest_errors.NewInternalServerError("Invalid Error interface when trying to login user", errors.New("rest error"))
 		}
-		return nil, &restErr
+		return nil, restErr
 	}
 	var user users.User
 	if err := json.Unmarshal(response.Bytes(), &user); err != nil {
-		return nil, errors.NewInternalServerError("Error when trying to unmarshal user response")
+		return nil, rest_errors.NewInternalServerError("Error when trying to unmarshal user response", errors.New("rest error"))
 	}
 	return &user, nil
 }
